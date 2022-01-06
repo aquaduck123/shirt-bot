@@ -1,22 +1,26 @@
-const OPENAI_KEY = process.env['OPENAI_KEY']
 const querystring = require('querystring');
 const https = require('https')
-var badWords = ["nigger", "nigga", "faggot", "chink", "coon", "retard", "tranny", "kik", "dyke", "slut", "whore","triggerword"]
+var badWords = require("./JSONs/badWords.json")
+const config = require("./config.json")
+const OPENAI_KEY = config["OPENAI_KEY"]
+var shirtinstruct_channel_ids = require("./JSONs/shirtinstruct.json")
+
 function boldString(str, find) {
   var reg = new RegExp('(' + find + ')', 'gi');
   return str.replace(reg, '[slur removed]');
 }
-const token = `OTE1NjE5MjIwODk5OTIyMDEw.YaeO2Q.Cf7GDT3OOwllBE9Kh0Ic_l829fA`
-const { StaticAuthProvider } = require('twitch-auth');
 const fs = require('fs');
-const { send } = require('process');
+
 const Discord = require('discord.js');
 const { Client, Intents, Collection, MessageActionRow, MessageButton, MessageEmbed, MessageCollector, ButtonInteraction, MessageSelectMenu, MessageAttachment, ContextMenuInteraction } = require('discord.js');
 const bot = new Client({ intents: 32767 });
 bot.on("messageCreate", async message => {
-
-  if (message.content.startsWith("!instruct") && !message.author.bot) {
-    var prompt = message.content.substring(10, message.content.length)
+  
+  if ((shirtinstruct_channel_ids.includes(message.channel.id) && !message.author.bot&&!config.prefixes.includes(message.content.substring(0,2))||message.content.startsWith("--instruct"))) {
+    var prompt = message.content
+    if (message.content.startsWith("--instruct")){
+     prompt = message.content.substring(10, message.content.length)
+    }
     const data = JSON.stringify({
 
       prompt: prompt,
@@ -27,14 +31,23 @@ bot.on("messageCreate", async message => {
       frequency_penalty: 0,
       presence_penalty: 0
     })
+    let engine;
+    switch(config["engine"]){
+      case "curie":
+      engine = "curie-instruct-beta-v2"
+      break
+      case "davinci":
+      engine = "davinci-instruct-beta-v3"
+      break
+    }
     const options = {
       hostname: 'api.openai.com',
       port: 443,
-      path: '/v1/engines/curie-instruct-beta-v2/completions',
+      path: `/v1/engines/${engine}/completions`,
       method: 'POST',
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_KEY}`,
+        "Authorization": `Bearer ${config["OPENAI_KEY"]}`,
       }
     }
 
@@ -99,7 +112,7 @@ bot.on("messageCreate", async message => {
       method: 'POST',
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_KEY}`,
+        "Authorization": `Bearer ${config["OPENAI_KEY"]}`,
       }
     }
 
@@ -146,4 +159,4 @@ bot.on("messageCreate", async message => {
 
 })
 
-bot.login(token)
+bot.login(config["BOT_TOKEN"])

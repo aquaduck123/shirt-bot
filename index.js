@@ -1,6 +1,6 @@
 const fs = require('fs');
 const https = require("https")
-const { send } = require('process');
+
 const Discord = require('discord.js');
 const { Client, Intents, Collection, MessageActionRow, MessageButton, MessageEmbed, MessageCollector, ButtonInteraction, MessageSelectMenu, MessageAttachment, ContextMenuInteraction } = require('discord.js');
 const bot = new Client({ intents: 32767 });
@@ -8,12 +8,12 @@ const badWords = require("./JSONs/badWords.json")
 const config = require("./config.json")
 
 var shirttalk_channels = require("./JSONs/shirttalk.json")
+var shirtinstruct_channels_ids = require("./JSONs/shirtinstruct.json")
 require("./instruct")
 var shirttalk_channel_ids = []
 for (const channel of shirttalk_channels) {
   shirttalk_channel_ids.push(channel.id)
 }
-
 
 bot.on("messageCreate", async message => {
   if (shirttalk_channel_ids.includes(message.channel.id) && !message.author.bot) {
@@ -29,21 +29,22 @@ bot.on("messageCreate", async message => {
       prompt += `${bot.user.username}:`
       var randomness = shirttalk_channels.find(o => o.id === message.channel.id).randomness;
       getRequest(prompt, message, randomness)
-      
+
     }
 
   }
-  for(const prefix of config.prefixes){
-    if(message.content.startsWith(prefix))
-    message.content = message.content.replace(prefix, "--")
+  for (const prefix of config.prefixes) {
+    if (message.content.startsWith(prefix))
+      message.content = message.content.replace(prefix, "--")
   }
+
   if (!message.content.startsWith("--")) return
 
   if (message.content.startsWith("--shirttalk toggle")) {
     if (shirttalk_channel_ids.includes(message.channel.id)) {
       shirttalk_channel_ids.splice(shirttalk_channel_ids.indexOf(message.channel.id))
       for (var x = 0; x < shirttalk_channels.length; x++) {
-        if (shirttalk_channels[x].id==message.channel.id) {
+        if (shirttalk_channels[x].id == message.channel.id) {
           shirttalk_channels.splice(x)
           fs.writeFile("./JSONs/shirttalk.json", JSON.stringify(shirttalk_channels, null, 4), function(err) {
             if (err) return console.log(err);
@@ -58,10 +59,11 @@ bot.on("messageCreate", async message => {
         randomness = parseFloat(randomness[2])
         if (!isNaN(randomness)) {
           if (randomness <= 50 && randomness >= 0) {
-            
+            // RANDOMNESS IS VALID :D
           }
-
+          else randomness = 40
         }
+        else randomness = 40
       }
       else randomness = 40
       shirttalk_channel_ids.push(message.channel.id)
@@ -76,7 +78,47 @@ bot.on("messageCreate", async message => {
       });
 
     }
+  } else if (message.content.startsWith("--shirtinstruct toggle")) {
+
+    if (shirtinstruct_channels_ids.includes(message.channel.id)) {
+      shirtinstruct_channels_ids.splice(shirtinstruct_channels_ids.indexOf(message.channel.id))
+
+      console.log(shirtinstruct_channels_ids)
+      fs.writeFile("./JSONs/shirtinstruct.json", JSON.stringify(shirtinstruct_channels_ids), function(err) {
+        if (err) return console.log(err);
+      });
+
+
+
+
+    } else {
+      shirtinstruct_channels_ids.push(message.channel.id)
+
+      fs.writeFile("./JSONs/shirtinstruct.json", JSON.stringify(shirtinstruct_channels_ids), function(err) {
+        if (err) return console.log(err);
+      });
+
+    }
+
+
+
+  } else if (message.content.startsWith("--help")) {
+    const embed = new MessageEmbed()
+      .setTitle("shirt bot help")
+      .setDescription("This is a modified version of Cyclcrclicly's shirt bot which can be found at https://github.com/Cyclcrclicly/shirt-bot. This bot is rewritten in Node JS with more features and customizability. This bot requires an OpenAI key which you can get from https://openai.com/api/")
+      .setFields([
+        { name: "--help", value: "Displays this menu" },
+        { name: "--instruct", value: "uses OpenAI's instruct beta to try and complete a prompt" },
+        { name: "--complete", value: "uses OpenAI's complete model to try and fill in a template" },
+        { name: "--shirttalk toggle", value: "toggles shirttalk in that channel" },
+        { name: "--shirtinstruct toggle", value: "toggles shirtinstruct in that channel" }
+      ])
+      .setFooter("Made by AquaDuck123#5358")
+      .setTimestamp()
+    message.reply({ embeds: [embed] })
+    
   }
+
 })
 
 async function collect_messages(channel) {
@@ -90,7 +132,7 @@ async function collect_messages(channel) {
   for (const message of messages) {
 
     contents.push(message.content.toLowerCase())
-    
+
     if (!authors.includes(message.author.username)) authors.push(message.author.username)
   }
   startPos = messages.length;
@@ -100,13 +142,13 @@ async function collect_messages(channel) {
     while (startPos == messages.length && x < messages.length) {
       if (messages[x].content.startsWith("--reset")) {
         startPos = x
-        x = messages.length+1
-      } 
+        x = messages.length + 1
+      }
       else
-      x++
+        x++
     }
   }
- 
+
   for (var x = 0; x < startPos; x++) {
 
     var message = messages[x]
@@ -139,7 +181,7 @@ async function getRequest(prompt, message, randomness) {
     presence_penalty: 0,
     stop: message.author.username + ": "
   })
-  
+
   const options = {
     hostname: 'api.openai.com',
     port: 443,
@@ -160,11 +202,11 @@ async function getRequest(prompt, message, randomness) {
     res.on("end", () => {
       data = JSON.parse(data)
       try {
-        if(!data.choices[0].text) return
+        if (!data.choices[0].text) return
         var response = data.choices[0].text
-        
+
         if (response.includes("shirt bot:")) console.log(message.content.split("shirt bot:"))
-        
+
         message.reply(response)
       }
       catch (error) {

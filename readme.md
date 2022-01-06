@@ -18,3 +18,4 @@ This is a modified version of Cyclcrclicly's shirt bot which can be found [here]
 # NOTES
 - Censored words can be added/removed in `/JSONs/badWords.json`
 - Default channel settings can be changed in `index.js`
+- instruct settings can be changed in `instruct.js`

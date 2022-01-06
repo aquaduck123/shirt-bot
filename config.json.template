@@ -1,10 +1,10 @@
 {
-	"engine": "curie", // Either curie or davinci, davinci is more powerful but is more expensive
-	"max_tokens": 128, // Maximum amount of tokens to return
+	"engine": "davinci", // Either curie or davinci, davinci is more powerful but is more expensive
+	"max_tokens": 128, // Maximum amount of tokens to return (for shirttalk only)
 	"frequency_penalty": 1.5, // Higher values decreases the chance of the bot repeating itself [-2 , 2]
 	"prefixes": [ 
 		"--"
-	], //  Array of prefixes
+	], //  Array of 2 char long prefixes
 	"OPENAI_TOKEN": "YOUR_OPENAI_TOKEN", // Your OpenAI API key
 	"BOT_TOKEN": "YOUR_BOT_TOKEN" // Your Discord bot token
 }
