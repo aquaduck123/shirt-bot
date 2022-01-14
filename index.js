@@ -16,10 +16,15 @@ for (const channel of shirttalk_channels) {
 
 bot.on("messageCreate", async message => {
 
-  
+
   if (shirttalk_channel_ids.includes(message.channel.id) && !message.author.bot) {
+    for (const prefix of config.prefixes) {
+      if (message.content.startsWith(prefix))
+        message.content = message.content.replace(prefix, "--")
+    }
+
     if (!message.content.startsWith("--") && !message.content.startsWith("#")) {
-      if(message.system) return
+      if (message.system || !message.content) return
       message.channel.sendTyping()
       var messages = await collect_messages(message.channel)
 
@@ -35,10 +40,6 @@ bot.on("messageCreate", async message => {
     }
 
   }
-  for (const prefix of config.prefixes) {
-    if (message.content.startsWith(prefix))
-      message.content = message.content.replace(prefix, "--")
-  }
 
   if (!message.content.startsWith("--")) return
 
@@ -48,7 +49,7 @@ bot.on("messageCreate", async message => {
       for (var x = 0; x < shirttalk_channels.length; x++) {
         if (shirttalk_channels[x].id == message.channel.id) {
           shirttalk_channels.splice(x)
-          fs.writeFile("./JSONs/shirttalk.json", JSON.stringify(shirttalk_channels, null, 4), function(err) {
+          fs.writeFile("./JSONs/shirttalk.json", JSON.stringify(shirttalk_channels, null, 4), function (err) {
             if (err) return console.log(err);
           });
           return
@@ -75,7 +76,7 @@ bot.on("messageCreate", async message => {
       })
 
 
-      fs.writeFile("./JSONs/shirttalk.json", JSON.stringify(shirttalk_channels, null, 4), function(err) {
+      fs.writeFile("./JSONs/shirttalk.json", JSON.stringify(shirttalk_channels, null, 4), function (err) {
         if (err) return console.log(err);
       });
 
@@ -85,8 +86,8 @@ bot.on("messageCreate", async message => {
     if (shirtinstruct_channels_ids.includes(message.channel.id)) {
       shirtinstruct_channels_ids.splice(shirtinstruct_channels_ids.indexOf(message.channel.id))
 
-      console.log(shirtinstruct_channels_ids)
-      fs.writeFile("./JSONs/shirtinstruct.json", JSON.stringify(shirtinstruct_channels_ids), function(err) {
+
+      fs.writeFile("./JSONs/shirtinstruct.json", JSON.stringify(shirtinstruct_channels_ids), function (err) {
         if (err) return console.log(err);
       });
 
@@ -96,7 +97,7 @@ bot.on("messageCreate", async message => {
     } else {
       shirtinstruct_channels_ids.push(message.channel.id)
 
-      fs.writeFile("./JSONs/shirtinstruct.json", JSON.stringify(shirtinstruct_channels_ids), function(err) {
+      fs.writeFile("./JSONs/shirtinstruct.json", JSON.stringify(shirtinstruct_channels_ids), function (err) {
         if (err) return console.log(err);
       });
 
@@ -126,7 +127,7 @@ bot.on("messageCreate", async message => {
 async function collect_messages(channel) {
 
   var lst = []
- 
+
   var messages = await channel.messages.fetch({ limit: 15 })
   var contents = []
   messages = Array.from(messages.values())
@@ -135,10 +136,17 @@ async function collect_messages(channel) {
 
     contents.push(message.content.toLowerCase())
 
-    
+
   }
   startPos = messages.length;
+  for (const prefix of config.prefixes) {
+    for (var x = 0; x < contents.length; x++) {
+      if (contents[x].startsWith(prefix))
+        contents[x] = contents[x].replace(prefix, "--")
 
+    }
+
+  }
   if (contents.includes("--reset")) {
     var x = 0;
     while (startPos == messages.length && x < messages.length) {
@@ -174,7 +182,7 @@ async function collect_messages(channel) {
 
 
 async function getRequest(prompt, message, randomness) {
-  
+
   const data = JSON.stringify({
     prompt: prompt,
     temperature: randomness / 50,
@@ -209,16 +217,16 @@ async function getRequest(prompt, message, randomness) {
         if (!data.choices[0].text) return
         var response = data.choices[0].text
 
-        if (response.includes("shirt bot:")) {
-          response = response.split("shirt bot:")
-          for (var x = 0; x < response.length; x++) {
-            if (x = 0) message.reply(response[0])
-            else message.channel.send(response[x])
-          }
-        } else {
-          message.reply(response)
-        }
+        // if (response.includes("shirt bot:")) {
+        //   response = response.split("shirt bot:")
+        //   for (var x = 0; x < response.length; x++) {
+        //     if (x = 0) message.reply(response[0])
+        //     else message.channel.send(response[x])
+        //   }
+        // } else {
 
+        // }
+        message.reply(response)
 
       }
       catch (error) {
@@ -250,4 +258,9 @@ bot.on('ready', async () => {
   module.exports.bot = bot
   require("./instruct")
 })
+bot.on('disconnect', function (msg, code) {
+  console.log(msg + "\n" + code)
+  if (code === 0) return console.error(msg);
+  bot.connect();
+});
 bot.login(config["BOT_TOKEN"])
