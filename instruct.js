@@ -14,12 +14,14 @@ const fs = require('fs');
 
 const Discord = require('discord.js');
 const { Client, Intents, Collection, MessageActionRow, MessageButton, MessageEmbed, MessageCollector, ButtonInteraction, MessageSelectMenu, MessageAttachment, ContextMenuInteraction } = require('discord.js');
-const bot = new Client({ intents: 32767 });
+const bot = require("./index").bot
 bot.on("messageCreate", async message => {
+
   
   if ((shirtinstruct_channel_ids.includes(message.channel.id) && !message.author.bot&&!config.prefixes.includes(message.content.substring(0,2))||message.content.startsWith("--instruct"))) {
     if(message.content.startsWith("#")||message.system) return
     var prompt = message.content
+    message.channel.sendTyping()
     if (message.content.startsWith("--instruct")){
      prompt = message.content.substring(10, message.content.length)
     }
@@ -173,4 +175,3 @@ bot.on("messageCreate", async message => {
 
 })
 
-bot.login(config["BOT_TOKEN"])

@@ -1,6 +1,5 @@
 const fs = require('fs');
 const https = require("https")
-
 const Discord = require('discord.js');
 const { Client, Intents, Collection, MessageActionRow, MessageButton, MessageEmbed, MessageCollector, ButtonInteraction, MessageSelectMenu, MessageAttachment, ContextMenuInteraction } = require('discord.js');
 const bot = new Client({ intents: 32767 });
@@ -9,19 +8,20 @@ const config = require("./config.json")
 
 var shirttalk_channels = require("./JSONs/shirttalk.json")
 var shirtinstruct_channels_ids = require("./JSONs/shirtinstruct.json")
-require("./instruct")
+
 var shirttalk_channel_ids = []
 for (const channel of shirttalk_channels) {
   shirttalk_channel_ids.push(channel.id)
 }
 
 bot.on("messageCreate", async message => {
+
+  
   if (shirttalk_channel_ids.includes(message.channel.id) && !message.author.bot) {
     if (!message.content.startsWith("--") && !message.content.startsWith("#")) {
       if(message.system) return
+      message.channel.sendTyping()
       var messages = await collect_messages(message.channel)
-      
-     
 
       var prompt = ""
       for (const message of messages) {
@@ -174,6 +174,7 @@ async function collect_messages(channel) {
 
 
 async function getRequest(prompt, message, randomness) {
+  
   const data = JSON.stringify({
     prompt: prompt,
     temperature: randomness / 50,
@@ -246,5 +247,7 @@ function remove_slurs(input) {
 
 bot.on('ready', async () => {
   console.log(`Bot ready as ${bot.user.tag}`)
+  module.exports.bot = bot
+  require("./instruct")
 })
 bot.login(config["BOT_TOKEN"])
