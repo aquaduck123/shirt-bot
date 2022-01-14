@@ -1,0 +1,10 @@
+{
+	"engine": "curie",
+	"max_tokens": 128,
+	"frequency_penalty": 1.5,
+	"prefixes": [ 
+		"--"
+	],
+	"OPENAI_TOKEN": "",
+	"BOT_TOKEN": ""
+}

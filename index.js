@@ -18,9 +18,10 @@ for (const channel of shirttalk_channels) {
 bot.on("messageCreate", async message => {
   if (shirttalk_channel_ids.includes(message.channel.id) && !message.author.bot) {
     if (!message.content.startsWith("--") && !message.content.startsWith("#")) {
-      var temp = await collect_messages(message.channel)
-      let messages = temp.messages
-      let authors = temp.authors
+      if(message.system) return
+      var messages = await collect_messages(message.channel)
+      
+     
 
       var prompt = ""
       for (const message of messages) {
@@ -29,6 +30,7 @@ bot.on("messageCreate", async message => {
       prompt += `${bot.user.username}:`
       var randomness = shirttalk_channels.find(o => o.id === message.channel.id).randomness;
       getRequest(prompt, message, randomness)
+
 
     }
 
@@ -116,7 +118,7 @@ bot.on("messageCreate", async message => {
       .setFooter("Made by AquaDuck123#5358")
       .setTimestamp()
     message.reply({ embeds: [embed] })
-    
+
   }
 
 })
@@ -124,7 +126,7 @@ bot.on("messageCreate", async message => {
 async function collect_messages(channel) {
 
   var lst = []
-  var authors = []
+ 
   var messages = await channel.messages.fetch({ limit: 15 })
   var contents = []
   messages = Array.from(messages.values())
@@ -133,7 +135,7 @@ async function collect_messages(channel) {
 
     contents.push(message.content.toLowerCase())
 
-    if (!authors.includes(message.author.username)) authors.push(message.author.username)
+    
   }
   startPos = messages.length;
 
@@ -166,7 +168,7 @@ async function collect_messages(channel) {
   }
 
   lst.reverse()
-  return { messages: lst, authors: authors };
+  return lst
 
 }
 
@@ -189,7 +191,7 @@ async function getRequest(prompt, message, randomness) {
     method: 'POST',
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${config["OPENAI_KEY"]}`,
+      "Authorization": `Bearer ${config["OPENAI_TOKEN"]}`,
     }
   }
   const req = https.request(options, res => {
@@ -201,13 +203,22 @@ async function getRequest(prompt, message, randomness) {
 
     res.on("end", () => {
       data = JSON.parse(data)
+
       try {
         if (!data.choices[0].text) return
         var response = data.choices[0].text
 
-        if (response.includes("shirt bot:")) console.log(message.content.split("shirt bot:"))
+        if (response.includes("shirt bot:")) {
+          response = response.split("shirt bot:")
+          for (var x = 0; x < response.length; x++) {
+            if (x = 0) message.reply(response[0])
+            else message.channel.send(response[x])
+          }
+        } else {
+          message.reply(response)
+        }
 
-        message.reply(response)
+
       }
       catch (error) {
         console.error(error)

@@ -2,13 +2,14 @@ const querystring = require('querystring');
 const https = require('https')
 var badWords = require("./JSONs/badWords.json")
 const config = require("./config.json")
-const OPENAI_KEY = config["OPENAI_KEY"]
+const OPENAI_KEY = config["OPENAI_TOKEN"]
 var shirtinstruct_channel_ids = require("./JSONs/shirtinstruct.json")
 
 function boldString(str, find) {
   var reg = new RegExp('(' + find + ')', 'gi');
   return str.replace(reg, '[slur removed]');
 }
+
 const fs = require('fs');
 
 const Discord = require('discord.js');
@@ -17,14 +18,27 @@ const bot = new Client({ intents: 32767 });
 bot.on("messageCreate", async message => {
   
   if ((shirtinstruct_channel_ids.includes(message.channel.id) && !message.author.bot&&!config.prefixes.includes(message.content.substring(0,2))||message.content.startsWith("--instruct"))) {
+    if(message.content.startsWith("#")||message.system) return
     var prompt = message.content
     if (message.content.startsWith("--instruct")){
      prompt = message.content.substring(10, message.content.length)
     }
+    
+    let temp;
+     if(message.content.includes("temperature=")){
+      try{
+      let com = prompt.substring(prompt.indexOf("temperature=")+12,prompt.indexOf("temperature=")+15)
+      temp = parseFloat(com)
+      prompt = prompt.substring(0,prompt.indexOf("temperature="))+prompt.substring(prompt.indexOf("temperature=")+15,prompt.length)
+
+      }catch(error) {console.error(error)}
+    }else{
+      temp = 0.7
+    }
     const data = JSON.stringify({
 
       prompt: prompt,
-      temperature: 0.7,
+      temperature: temp,
       max_tokens: 1028,
       top_p: 1,
       echo: true,
@@ -47,7 +61,7 @@ bot.on("messageCreate", async message => {
       method: 'POST',
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${config["OPENAI_KEY"]}`,
+        "Authorization": `Bearer ${config["OPENAI_TOKEN"]}`,
       }
     }
 
