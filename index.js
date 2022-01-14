@@ -15,8 +15,8 @@ for (const channel of shirttalk_channels) {
 }
 
 bot.on("messageCreate", async message => {
-
-
+   console.log()
+   
   if (shirttalk_channel_ids.includes(message.channel.id) && !message.author.bot) {
     for (const prefix of config.prefixes) {
       if (message.content.startsWith(prefix))
@@ -27,12 +27,14 @@ bot.on("messageCreate", async message => {
       if (message.system || !message.content) return
       message.channel.sendTyping()
       var messages = await collect_messages(message.channel)
+      
 
       var prompt = ""
       for (const message of messages) {
         prompt += (message + "\n")
       }
-      prompt += `${bot.user.username}:`
+      prompt += `${message.guild.me.nickname}:`
+      console.log(prompt)
       var randomness = shirttalk_channels.find(o => o.id === message.channel.id).randomness;
       getRequest(prompt, message, randomness)
 
@@ -49,7 +51,7 @@ bot.on("messageCreate", async message => {
       for (var x = 0; x < shirttalk_channels.length; x++) {
         if (shirttalk_channels[x].id == message.channel.id) {
           shirttalk_channels.splice(x)
-          fs.writeFile("./JSONs/shirttalk.json", JSON.stringify(shirttalk_channels, null, 4), function (err) {
+          fs.writeFile("./JSONs/shirttalk.json", JSON.stringify(shirttalk_channels, null, 4), function(err) {
             if (err) return console.log(err);
           });
           return
@@ -76,7 +78,7 @@ bot.on("messageCreate", async message => {
       })
 
 
-      fs.writeFile("./JSONs/shirttalk.json", JSON.stringify(shirttalk_channels, null, 4), function (err) {
+      fs.writeFile("./JSONs/shirttalk.json", JSON.stringify(shirttalk_channels, null, 4), function(err) {
         if (err) return console.log(err);
       });
 
@@ -87,7 +89,7 @@ bot.on("messageCreate", async message => {
       shirtinstruct_channels_ids.splice(shirtinstruct_channels_ids.indexOf(message.channel.id))
 
 
-      fs.writeFile("./JSONs/shirtinstruct.json", JSON.stringify(shirtinstruct_channels_ids), function (err) {
+      fs.writeFile("./JSONs/shirtinstruct.json", JSON.stringify(shirtinstruct_channels_ids), function(err) {
         if (err) return console.log(err);
       });
 
@@ -97,7 +99,7 @@ bot.on("messageCreate", async message => {
     } else {
       shirtinstruct_channels_ids.push(message.channel.id)
 
-      fs.writeFile("./JSONs/shirtinstruct.json", JSON.stringify(shirtinstruct_channels_ids), function (err) {
+      fs.writeFile("./JSONs/shirtinstruct.json", JSON.stringify(shirtinstruct_channels_ids), function(err) {
         if (err) return console.log(err);
       });
 
@@ -120,6 +122,8 @@ bot.on("messageCreate", async message => {
       .setTimestamp()
     message.reply({ embeds: [embed] })
 
+  }else if (message.content.startsWith("--generate")){
+    
   }
 
 })
@@ -141,8 +145,10 @@ async function collect_messages(channel) {
   startPos = messages.length;
   for (const prefix of config.prefixes) {
     for (var x = 0; x < contents.length; x++) {
-      if (contents[x].startsWith(prefix))
+      if (contents[x].startsWith(prefix)) {
         contents[x] = contents[x].replace(prefix, "--")
+    
+      }
 
     }
 
@@ -170,9 +176,17 @@ async function collect_messages(channel) {
     }
     if (message.content.startsWith("#") || message.content.startsWith("&")) collected = false
 
-    if (collected) lst.push(`${message.author.username}: ${message.content}`)
+    if (collected) {
+      if(message.member.nickname){
+        
+        lst.push(`${message.member.nickname}: ${message.content}`)
+      }else{
+
+        lst.push(`${message.author.username}: ${message.content}`)
+      }
+      }
     else if (x == messages.length - 1 && !config.prefixes.includes(message.content.substring(0, 2)))
-      lst.push(bot.username + ": ")
+      lst.push(message.guild.me.nickname + ": ")
   }
 
   lst.reverse()
@@ -190,7 +204,7 @@ async function getRequest(prompt, message, randomness) {
     top_p: 1,
     frequency_penalty: config.frequency_penalty,
     presence_penalty: 0,
-    stop: message.author.username + ": "
+    stop: message.guild.me.nickname + ": "
   })
 
   const options = {
@@ -258,7 +272,7 @@ bot.on('ready', async () => {
   module.exports.bot = bot
   require("./instruct")
 })
-bot.on('disconnect', function (msg, code) {
+bot.on('disconnect', function(msg, code) {
   console.log(msg + "\n" + code)
   if (code === 0) return console.error(msg);
   bot.connect();
