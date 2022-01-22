@@ -1,21 +1,28 @@
 const fs = require('fs');
-const https = require("https")
+const axios = require("axios")
 const Discord = require('discord.js');
-const { Client, Intents, Collection, MessageActionRow, MessageButton, MessageEmbed, MessageCollector, ButtonInteraction, MessageSelectMenu, MessageAttachment, ContextMenuInteraction } = require('discord.js');
+const { Client, Intents, MessageEmbed} = require('discord.js');
 const bot = new Client({ intents: 32767 });
 const badWords = require("./JSONs/badWords.json")
 const config = require("./config.json")
 
-var shirttalk_channels = require("./JSONs/shirttalk.json")
+let shirttalk_channels = require("./JSONs/shirttalk.json")
 var shirtinstruct_channels_ids = require("./JSONs/shirtinstruct.json")
 
-var shirttalk_channel_ids = []
+let shirttalk_channel_ids = []
 for (const channel of shirttalk_channels) {
   shirttalk_channel_ids.push(channel.id)
 }
+function subArr(arr, i) {
+  let newArr = []
+  for (var x = 0; x < i && x < arr.length; x++) {
+    newArr[x] = arr[x]
+  }
+  return newArr
+}
+
 
 bot.on("messageCreate", async message => {
-
 
   if (shirttalk_channel_ids.includes(message.channel.id) && !message.author.bot) {
     for (const prefix of config.prefixes) {
@@ -26,15 +33,23 @@ bot.on("messageCreate", async message => {
     if (!message.content.startsWith("--") && !message.content.startsWith("#")) {
       if (message.system || !message.content) return
       message.channel.sendTyping()
-      var messages = await collect_messages(message.channel)
+      var temp = await collect_messages(message.channel)
+      let messages = temp.messages
+      let authors = subArr(temp.authors, 4)
 
       var prompt = ""
       for (const message of messages) {
         prompt += (message + "\n")
       }
-      prompt += `${bot.user.username}:`
+      if (message.guild.me.nickname) {
+        prompt += `${message.guild.me.nickname}:`
+      } else {
+        prompt += `${bot.user.username}:`
+      }
+
+
       var randomness = shirttalk_channels.find(o => o.id === message.channel.id).randomness;
-      getRequest(prompt, message, randomness)
+      getRequest(prompt, message, randomness, authors)
 
 
     }
@@ -49,7 +64,7 @@ bot.on("messageCreate", async message => {
       for (var x = 0; x < shirttalk_channels.length; x++) {
         if (shirttalk_channels[x].id == message.channel.id) {
           shirttalk_channels.splice(x)
-          fs.writeFile("./JSONs/shirttalk.json", JSON.stringify(shirttalk_channels, null, 4), function (err) {
+          fs.writeFile("./JSONs/shirttalk.json", JSON.stringify(shirttalk_channels, null, 4), function(err) {
             if (err) return console.log(err);
           });
           return
@@ -76,7 +91,7 @@ bot.on("messageCreate", async message => {
       })
 
 
-      fs.writeFile("./JSONs/shirttalk.json", JSON.stringify(shirttalk_channels, null, 4), function (err) {
+      fs.writeFile("./JSONs/shirttalk.json", JSON.stringify(shirttalk_channels, null, 4), function(err) {
         if (err) return console.log(err);
       });
 
@@ -87,7 +102,7 @@ bot.on("messageCreate", async message => {
       shirtinstruct_channels_ids.splice(shirtinstruct_channels_ids.indexOf(message.channel.id))
 
 
-      fs.writeFile("./JSONs/shirtinstruct.json", JSON.stringify(shirtinstruct_channels_ids), function (err) {
+      fs.writeFile("./JSONs/shirtinstruct.json", JSON.stringify(shirtinstruct_channels_ids), function(err) {
         if (err) return console.log(err);
       });
 
@@ -97,7 +112,7 @@ bot.on("messageCreate", async message => {
     } else {
       shirtinstruct_channels_ids.push(message.channel.id)
 
-      fs.writeFile("./JSONs/shirtinstruct.json", JSON.stringify(shirtinstruct_channels_ids), function (err) {
+      fs.writeFile("./JSONs/shirtinstruct.json", JSON.stringify(shirtinstruct_channels_ids), function(err) {
         if (err) return console.log(err);
       });
 
@@ -108,27 +123,39 @@ bot.on("messageCreate", async message => {
   } else if (message.content.startsWith("--help")) {
     const embed = new MessageEmbed()
       .setTitle("shirt bot help")
-      .setDescription("This is a modified version of Cyclcrclicly's shirt bot which can be found at https://github.com/Cyclcrclicly/shirt-bot. This bot is rewritten in Node JS with more features and customizability. This bot requires an OpenAI key which you can get from https://openai.com/api/")
+      .setDescription("This is a modified version of Cyclcrclicly's shirt bot which can be found at https://github.com/Cyclcrclicly/shirt-bot. This bot uses OpenAI's GPT-3 models to generate responses to a message or collection of messages. \n Commands are listed below")
       .setFields([
         { name: "--help", value: "Displays this menu" },
         { name: "--instruct", value: "uses OpenAI's instruct beta to try and complete a prompt" },
-        { name: "--complete", value: "uses OpenAI's complete model to try and fill in a template" },
         { name: "--shirttalk toggle", value: "toggles shirttalk in that channel" },
         { name: "--shirtinstruct toggle", value: "toggles shirtinstruct in that channel" }
       ])
-      .setFooter("Made by AquaDuck123#5358")
+      .setFooter("Made by AquaDuck#5358")
       .setTimestamp()
     message.reply({ embeds: [embed] })
 
+  } else if (message.content.startsWith("--generate")) {
+    message.channel.sendTyping()
+    var messages = await collect_messages(message.channel)
+
+    messages = messages.messages
+    var prompt = ""
+    for (const message of messages) {
+      prompt += (message + "\n")
+    }
+    prompt += `${message.guild.me.nickname}:`
+
+    var randomness = 0.7;
+    getRequest(prompt, message, randomness)
   }
 
 })
 
 async function collect_messages(channel) {
-
+  let authorNames = []
   var lst = []
-
-  var messages = await channel.messages.fetch({ limit: 15 })
+  var authors = []
+  var messages = await channel.messages.fetch({ limit: 10 })
   var contents = []
   messages = Array.from(messages.values())
 
@@ -136,13 +163,26 @@ async function collect_messages(channel) {
 
     contents.push(message.content.toLowerCase())
 
+    if (!authorNames.includes(message.author.id)) {
+      try {
 
+        authorNames.push(message.author.id)
+        if (message.member.nickname != null) {
+          authors.push(message.member.nickname + ": ")
+        } else {
+
+          authors.push(message.author.username + ": ")
+        }
+      } catch (err) { console.error(err) }
+    }
   }
   startPos = messages.length;
   for (const prefix of config.prefixes) {
     for (var x = 0; x < contents.length; x++) {
-      if (contents[x].startsWith(prefix))
+      if (contents[x].startsWith(prefix)) {
         contents[x] = contents[x].replace(prefix, "--")
+
+      }
 
     }
 
@@ -170,72 +210,65 @@ async function collect_messages(channel) {
     }
     if (message.content.startsWith("#") || message.content.startsWith("&")) collected = false
 
-    if (collected) lst.push(`${message.author.username}: ${message.content}`)
+    if (collected) {
+      if (message.member.nickname != null) {
+
+        lst.push(`${message.member.nickname}: ${message.content}`)
+      } else {
+
+        lst.push(`${message.author.username}: ${message.content}`)
+      }
+    }
     else if (x == messages.length - 1 && !config.prefixes.includes(message.content.substring(0, 2)))
-      lst.push(bot.username + ": ")
+      lst.push(message.guild.me.nickname + ": ")
   }
 
   lst.reverse()
-  return lst
+  return { messages: lst, authors: authors };
 
 }
 
 
-async function getRequest(prompt, message, randomness) {
+async function getRequest(prompt, message, randomness, authors) {
 
-  const data = JSON.stringify({
-    prompt: prompt,
-    temperature: randomness / 50,
-    max_tokens: config.max_tokens,
-    top_p: 1,
-    frequency_penalty: config.frequency_penalty,
-    presence_penalty: 0,
-    stop: message.author.username + ": "
-  })
+  var data = await axios
+    .post(`https://api.openai.com/v1/engines/${config.engine}/completions`,
+      {
+        prompt: prompt,
+        temperature: randomness / 50,
+        max_tokens: config.max_tokens,
+        top_p: 1,
+        frequency_penalty: config.frequency_penalty,
+        presence_penalty: 0,
+        stop: authors
+      }, {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${config["OPENAI_TOKEN"]}`,
+        }
+      })
+  data = data.data
 
-  const options = {
-    hostname: 'api.openai.com',
-    port: 443,
-    path: `/v1/engines/${config.engine}/completions`,
-    method: 'POST',
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${config["OPENAI_TOKEN"]}`,
+  try {
+    if (data.error) {
+      fs.writeFile("./err.txt", JSON.stringify(data.error, null, 4), function(err) {
+        if (err) return console.log(err);
+      });
+      process.exit(1)
     }
+    if (!data.choices[0].text) return
+
+    var response = remove_slurs(data.choices[0].text)
+    if (response.includes("\n")) {
+      response = response.split("\n")[0]
+    }
+    if (response.length <= 1) return
+    message.reply(response)
+
   }
-  const req = https.request(options, res => {
-    var data = ""
-
-    res.on('data', d => {
-      data += d;
-    })
-
-    res.on("end", () => {
-      data = JSON.parse(data)
-
-      try {
-        if (!data.choices[0].text) return
-        var response = data.choices[0].text
-
-        // if (response.includes("shirt bot:")) {
-        //   response = response.split("shirt bot:")
-        //   for (var x = 0; x < response.length; x++) {
-        //     if (x = 0) message.reply(response[0])
-        //     else message.channel.send(response[x])
-        //   }
-        // } else {
-
-        // }
-        message.reply(response)
-
-      }
-      catch (error) {
-        console.error(error)
-      }
-    })
-  })
-  req.write(data)
-  req.end()
+  catch (error) {
+    console.error(error)
+  }
 }
 
 
@@ -258,7 +291,7 @@ bot.on('ready', async () => {
   module.exports.bot = bot
   require("./instruct")
 })
-bot.on('disconnect', function (msg, code) {
+bot.on('disconnect', function(msg, code) {
   console.log(msg + "\n" + code)
   if (code === 0) return console.error(msg);
   bot.connect();
