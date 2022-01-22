@@ -4,9 +4,9 @@ This is a modified version of Cyclcrclicly's shirt bot which can be found [here]
 # REQUIREMENTS
 [Node JS](https://nodejs.org/en/) v1.16 or higher
 
-[Axios] (https://axios-http.com/)
+[Axios](https://axios-http.com/)
 
-[Discord.js] (https://discord.js.org/) v13
+[Discord.js](https://discord.js.org/) v13
 
 # SETUP
 
