@@ -1,5 +1,5 @@
 # OVERVIEW
-This is a modified version of Cyclcrclicly's shirt bot which can be found [here](https://github.com/Cyclcrclicly/shirt-bot). This bot is rewritten in Node JS with more features and customizability. This bot requires an OpenAI key which you can get from [here] (https://openai.com/api/)
+This is a modified version of Cyclcrclicly's shirt bot which can be found [here](https://github.com/Cyclcrclicly/shirt-bot). This bot is rewritten in Node JS with more features and customizability. This bot requires an OpenAI key which you can get from [here](https://openai.com/api/)
 
 # REQUIREMENTS
 [Node JS](https://nodejs.org/en/) v1.16 or higher
